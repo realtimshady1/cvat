@@ -47,7 +47,7 @@ spec:
           value: pip3 install git+https://github.com/SysCV/sam-hq.git
       # download sam weights
         - kind: RUN
-          value: wget https://huggingface.co/lkeab/hq-sam/resolve/main/sam_hq_vit_l.pth
+          value: wget https://huggingface.co/lkeab/hq-sam/resolve/main/sam_hq_vit_h.pth
       # map pip3 and python3 to pip and python
         - kind: RUN
           value: ln -s /usr/bin/pip3 /usr/local/bin/pip && ln -s /usr/bin/python3 /usr/bin/python
