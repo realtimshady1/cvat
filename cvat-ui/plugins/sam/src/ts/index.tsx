@@ -216,7 +216,7 @@ const samPlugin: SAMPlugin = {
                             .then(({ height: imHeight, width: imWidth }: { height: number; width: number }) => {
                                 const key = `${taskID}_${frame}`;
 
-                                if (result.blob) {
+                                if (result) {
                                     const bin = window.atob(result.blob);
                                     const uint8Array = new Uint8Array(bin.length);
                                     for (let i = 0; i < bin.length; i++) {
@@ -224,9 +224,7 @@ const samPlugin: SAMPlugin = {
                                     }
                                     const float32Arr = new Float32Array(uint8Array.buffer);
                                     plugin.data.embeddings.set(key, new Tensor('float32', float32Arr, [1, 256, 64, 64]));
-                                }
 
-                                if (result.embeddings) {
                                     const embeddingsBin = window.atob(result.embeddings);
                                     const embeddingsUint8Array = new Uint8Array(embeddingsBin.length);
                                     for (let i = 0; i < embeddingsBin.length; i++) {
