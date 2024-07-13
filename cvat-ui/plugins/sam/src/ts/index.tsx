@@ -47,6 +47,7 @@ interface SAMPlugin {
         modelID: string;
         modelURL: string;
         embeddings: LRUCache<string, Tensor>;
+        intermEmbeddings: LRUCache<string, Tensor>;
         lowResMasks: LRUCache<string, Tensor>;
         lastClicks: ClickType[];
     };
@@ -70,15 +71,17 @@ function getModelScale(w: number, h: number): number {
 
 function modelData(
     {
-        clicks, tensor, modelScale, maskInput,
+        clicks, tensor, intermtensor, modelScale, maskInput,
     }: {
         clicks: ClickType[];
         tensor: Tensor;
+        intermtensor: Tensor;
         modelScale: { height: number; width: number; scale: number };
         maskInput: Tensor | null;
     },
 ): DecodeBody {
     const imageEmbedding = tensor;
+    const intermEmbedding = intermtensor;
 
     const n = clicks.length;
     const pointCoords = new Float32Array(2 * n);
@@ -102,6 +105,7 @@ function modelData(
 
     return {
         image_embeddings: imageEmbedding,
+        interm_embeddings: intermEmbedding,
         point_coords: pointCoordsTensor,
         point_labels: pointLabelsTensor,
         orig_im_size: imageSizeTensor,
@@ -220,6 +224,15 @@ const samPlugin: SAMPlugin = {
                                     }
                                     const float32Arr = new Float32Array(uint8Array.buffer);
                                     plugin.data.embeddings.set(key, new Tensor('float32', float32Arr, [1, 256, 64, 64]));
+
+
+                                    const embeddingsBin = window.atob(result.embeddings);
+                                    const embeddingsUint8Array = new Uint8Array(embeddingsBin.length);
+                                    for (let i = 0; i < embeddingsBin.length; i++) {
+                                        embeddingsUint8Array[i] = embeddingsBin.charCodeAt(i);
+                                    }
+                                    const embeddingsFloat32Arr = new Float32Array(embeddingsUint8Array.buffer);
+                                    plugin.data.intermEmbeddings.set(key, new Tensor('float32', embeddingsFloat32Arr, [4, 1, 64, 64, 1024]));
                                 }
 
                                 const modelScale = {
@@ -234,11 +247,13 @@ const samPlugin: SAMPlugin = {
                                     y,
                                 }));
 
+
                                 const isLowResMaskSuitable = JSON
                                     .stringify(composedClicks.slice(0, -1)) === JSON.stringify(plugin.data.lastClicks);
                                 const feeds = modelData({
                                     clicks: composedClicks,
                                     tensor: plugin.data.embeddings.get(key) as Tensor,
+                                    intermtensor: plugin.data.intermEmbeddings.get(key) as Tensor,
                                     modelScale,
                                     maskInput: isLowResMaskSuitable ? plugin.data.lowResMasks.get(key) || null : null,
                                 });
@@ -310,6 +325,12 @@ const samPlugin: SAMPlugin = {
         embeddings: new LRUCache({
             // float32 tensor [256, 64, 64] is 4 MB, max 128 MB
             max: 32,
+            updateAgeOnGet: true,
+            updateAgeOnHas: true,
+        }),
+        intermEmbeddings: new LRUCache({
+            // float32 tensor
+            max: 4,
             updateAgeOnGet: true,
             updateAgeOnHas: true,
         }),
