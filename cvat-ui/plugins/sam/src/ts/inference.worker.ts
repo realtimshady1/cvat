@@ -19,6 +19,7 @@ export interface InitBody {
 
 export interface DecodeBody {
     image_embeddings: Tensor;
+    interm_embeddings: Tensor;
     point_coords: Tensor;
     point_labels: Tensor;
     orig_im_size: Tensor;
